@@ -12,9 +12,13 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
+      "ios": {
+        "supportsTablet": true,
+        "bundleIdentifier": "com.feeqii.fitnessapp",
+        "infoPlist": {
+          "ITSAppUsesNonExemptEncryption": false
+        }
+      },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -25,6 +29,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "owner": "feeqii",
+    "extra": {
+      "eas": {
+        "projectId": "855a30fb-4bef-443d-98a2-088d0dbdf1f5"
+      }
     }
   }
 }
