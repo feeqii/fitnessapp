@@ -2,10 +2,25 @@ import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Storage for notification settings
-const notificationStorage = new MMKV({ id: 'notifications' });
+// Storage keys for notification settings
+const STORAGE_PREFIX = 'notifications_';
+
+// AsyncStorage helper functions
+const storage = {
+  async set(key: string, value: string): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_PREFIX + key, value);
+  },
+  
+  async getString(key: string): Promise<string | null> {
+    return await AsyncStorage.getItem(STORAGE_PREFIX + key);
+  },
+  
+  async delete(key: string): Promise<void> {
+    await AsyncStorage.removeItem(STORAGE_PREFIX + key);
+  }
+};
 
 // Storage keys
 const NOTIFICATION_KEYS = {
@@ -117,8 +132,8 @@ class NotificationService {
       });
 
       this.pushToken = pushTokenData.data;
-      notificationStorage.set(NOTIFICATION_KEYS.PUSH_TOKEN, this.pushToken);
-      notificationStorage.set(NOTIFICATION_KEYS.PERMISSION_GRANTED, true);
+      await storage.set(NOTIFICATION_KEYS.PUSH_TOKEN, this.pushToken);
+      await storage.set(NOTIFICATION_KEYS.PERMISSION_GRANTED, 'true');
 
       this.isInitialized = true;
       console.log('Notifications initialized successfully');
@@ -142,9 +157,9 @@ class NotificationService {
   }
 
   // Get notification settings
-  getSettings(): NotificationSettings {
+  async getSettings(): Promise<NotificationSettings> {
     try {
-      const settingsData = notificationStorage.getString(NOTIFICATION_KEYS.SETTINGS);
+      const settingsData = await storage.getString(NOTIFICATION_KEYS.SETTINGS);
       if (!settingsData) return DEFAULT_SETTINGS;
       
       return JSON.parse(settingsData);
@@ -155,9 +170,9 @@ class NotificationService {
   }
 
   // Save notification settings
-  saveSettings(settings: NotificationSettings): void {
+  async saveSettings(settings: NotificationSettings): Promise<void> {
     try {
-      notificationStorage.set(NOTIFICATION_KEYS.SETTINGS, JSON.stringify(settings));
+      await storage.set(NOTIFICATION_KEYS.SETTINGS, JSON.stringify(settings));
       
       // Re-schedule notifications with new settings
       this.scheduleAllNotifications();
@@ -204,7 +219,7 @@ class NotificationService {
         trigger,
       });
 
-      notificationStorage.set(NOTIFICATION_KEYS.DAILY_REMINDER_ID, identifier);
+      await storage.set(NOTIFICATION_KEYS.DAILY_REMINDER_ID, identifier);
       console.log('Daily reminder scheduled for', settings.dailyReminder.time);
 
     } catch (error) {
@@ -215,10 +230,10 @@ class NotificationService {
   // Cancel daily reminder
   async cancelDailyReminder(): Promise<void> {
     try {
-      const existingId = notificationStorage.getString(NOTIFICATION_KEYS.DAILY_REMINDER_ID);
+      const existingId = await storage.getString(NOTIFICATION_KEYS.DAILY_REMINDER_ID);
       if (existingId) {
         await Notifications.cancelScheduledNotificationAsync(existingId);
-        notificationStorage.delete(NOTIFICATION_KEYS.DAILY_REMINDER_ID);
+        await storage.delete(NOTIFICATION_KEYS.DAILY_REMINDER_ID);
       }
     } catch (error) {
       console.error('Error canceling daily reminder:', error);
@@ -415,8 +430,8 @@ class NotificationService {
   }
 
   // Get push token for this device
-  getPushToken(): string | null {
-    return this.pushToken || notificationStorage.getString(NOTIFICATION_KEYS.PUSH_TOKEN) || null;
+  async getPushToken(): Promise<string | null> {
+    return this.pushToken || await storage.getString(NOTIFICATION_KEYS.PUSH_TOKEN) || null;
   }
 
   // Check if notifications are properly set up
